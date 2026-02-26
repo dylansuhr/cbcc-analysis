@@ -39,6 +39,7 @@ def save_figure(fig, name: str):
     filepath = OUTPUT_DIR / f'{name}.png'
     fig.savefig(filepath, dpi=150, bbox_inches='tight')
     plt.close(fig)
+    write()
     write(f'<img src="figures/{name}.png" width=800>')
     write()
 
