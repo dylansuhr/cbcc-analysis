@@ -211,3 +211,6 @@ output/
 
 # macOS
 .DS_Store
+
+# Local scratch files
+src/eda2.py
