@@ -6,7 +6,7 @@ Exploratory data analysis of the CBCC dataset.
 
 ```bash
 conda env create -f environment.yml
-conda activate cbcc-analysis
+conda activate cbcc_analysis
 echo $CONDA_DEFAULT_ENV  # should print: cbcc-analysis
 ```
 
