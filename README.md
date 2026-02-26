@@ -27,10 +27,13 @@ make eda
 The script generates summary statistics and visualizations:
 
 - **Data Overview**: Dataset shape, date range, missing values, numeric summaries
-- **Revenue Analysis**: Distribution, by charter type, by vessel, revenue per guest
+- **Revenue Analysis**: Distribution, by charter type, by vessel, revenue per guest (non-cancelled only)
 - **Temporal Patterns**: Monthly trends, day-of-week patterns, seasonal heatmap
 - **Lead Time Analysis**: Distribution and relationship to revenue
 - **Booking Channel Analysis**: Revenue and volume by channel
 - **Correlation Analysis**: Heatmap of numeric features
+- **Cancellation Analysis**: Cancellation rates, patterns by month/type/channel, lead time comparison
 
-Figures are saved to `output/figures/`.
+Output:
+- Figures: `output/figures/`
+- Report: `output/eda_report.md`

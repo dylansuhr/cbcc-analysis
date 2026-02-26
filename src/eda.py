@@ -95,23 +95,28 @@ def data_overview(df: pd.DataFrame):
 # Section B: Revenue Analysis
 # =============================================================================
 def revenue_analysis(df: pd.DataFrame):
-    """Generate revenue analysis plots."""
+    """Generate revenue analysis plots (non-cancelled bookings only)."""
     section_header("B. Revenue Analysis")
+
+    # Filter to non-cancelled bookings for revenue analysis
+    df_active = df[df['Cancelled?'] == 'No'].copy()
+    write(f"*Analysis based on {len(df_active)} non-cancelled bookings*")
+    write()
 
     # B1: Revenue distribution
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    df['Total'].hist(bins=50, ax=ax, edgecolor='black', alpha=0.7)
+    df_active['Total'].hist(bins=50, ax=ax, edgecolor='black', alpha=0.7)
     ax.set_xlabel('Total Revenue ($)')
     ax.set_ylabel('Frequency')
     ax.set_title('Distribution of Booking Revenue')
-    ax.axvline(df['Total'].median(), color='red', linestyle='--', label=f"Median: ${df['Total'].median():,.0f}")
-    ax.axvline(df['Total'].mean(), color='orange', linestyle='--', label=f"Mean: ${df['Total'].mean():,.0f}")
+    ax.axvline(df_active['Total'].median(), color='red', linestyle='--', label=f"Median: ${df_active['Total'].median():,.0f}")
+    ax.axvline(df_active['Total'].mean(), color='orange', linestyle='--', label=f"Mean: ${df_active['Total'].mean():,.0f}")
     ax.legend()
     save_figure(fig, 'b1_revenue_distribution')
 
     # B2: Revenue by charter type
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    revenue_by_type = df.groupby('charter_type')['Total'].agg(['sum', 'mean', 'count'])
+    revenue_by_type = df_active.groupby('charter_type')['Total'].agg(['sum', 'mean', 'count'])
     revenue_by_type = revenue_by_type.sort_values('sum', ascending=True)
     bars = ax.barh(revenue_by_type.index, revenue_by_type['sum'] / 1000, color='steelblue')
     ax.set_xlabel('Total Revenue ($K)')
@@ -128,13 +133,13 @@ def revenue_analysis(df: pd.DataFrame):
 
     # B3: Revenue by party size (scatter + regression)
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    ax.scatter(df['# of Pax'], df['Total'], alpha=0.5, edgecolor='none')
+    ax.scatter(df_active['# of Pax'], df_active['Total'], alpha=0.5, edgecolor='none')
     # Add regression line
-    mask = ~(df['# of Pax'].isna() | df['Total'].isna())
+    mask = ~(df_active['# of Pax'].isna() | df_active['Total'].isna())
     slope, intercept, r_value, p_value, std_err = stats.linregress(
-        df.loc[mask, '# of Pax'], df.loc[mask, 'Total']
+        df_active.loc[mask, '# of Pax'], df_active.loc[mask, 'Total']
     )
-    x_line = np.array([df['# of Pax'].min(), df['# of Pax'].max()])
+    x_line = np.array([df_active['# of Pax'].min(), df_active['# of Pax'].max()])
     ax.plot(x_line, intercept + slope * x_line, 'r-',
             label=f'R² = {r_value**2:.3f}')
     ax.set_xlabel('Party Size (# of Pax)')
@@ -150,8 +155,8 @@ def revenue_analysis(df: pd.DataFrame):
 
     # B4: Revenue per guest by charter type
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    order = df.groupby('charter_type')['revenue_per_guest'].median().sort_values(ascending=False).index
-    sns.boxplot(data=df, x='charter_type', y='revenue_per_guest', order=order, ax=ax)
+    order = df_active.groupby('charter_type')['revenue_per_guest'].median().sort_values(ascending=False).index
+    sns.boxplot(data=df_active, x='charter_type', y='revenue_per_guest', order=order, ax=ax)
     ax.set_xlabel('Charter Type')
     ax.set_ylabel('Revenue per Guest ($)')
     ax.set_title('Revenue per Guest by Charter Type')
@@ -160,7 +165,7 @@ def revenue_analysis(df: pd.DataFrame):
 
     # B5: Revenue by vessel
     fig, ax = plt.subplots(figsize=FIGSIZE)
-    revenue_by_vessel = df.groupby('vessel')['Total'].agg(['sum', 'mean', 'count'])
+    revenue_by_vessel = df_active.groupby('vessel')['Total'].agg(['sum', 'mean', 'count'])
     revenue_by_vessel = revenue_by_vessel.sort_values('sum', ascending=True)
     bars = ax.barh(revenue_by_vessel.index, revenue_by_vessel['sum'] / 1000, color='teal')
     ax.set_xlabel('Total Revenue ($K)')
@@ -375,6 +380,90 @@ def correlation_analysis(df: pd.DataFrame):
 
 
 # =============================================================================
+# Section G: Cancellation Analysis
+# =============================================================================
+def cancellation_analysis(df: pd.DataFrame):
+    """Generate cancellation analysis."""
+    section_header("G. Cancellation Analysis")
+
+    # Calculate cancellation stats
+    total_bookings = len(df)
+    cancelled = df[df['Cancelled?'] != 'No']
+    active = df[df['Cancelled?'] == 'No']
+    cancellation_rate = len(cancelled) / total_bookings * 100
+
+    write(f"**Cancellation Overview:**")
+    write(f"- Total bookings: {total_bookings}")
+    write(f"- Active bookings: {len(active)}")
+    write(f"- Cancelled bookings: {len(cancelled)}")
+    write(f"- Cancellation rate: {cancellation_rate:.1f}%")
+    write()
+
+    if len(cancelled) == 0:
+        write("*No cancelled bookings to analyze.*")
+        return
+
+    # G1: Cancellations by month
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    cancel_by_month = cancelled.groupby(['year', 'month']).size().reset_index(name='count')
+    for year in sorted(cancelled['year'].unique()):
+        year_data = cancel_by_month[cancel_by_month['year'] == year]
+        ax.plot(year_data['month'], year_data['count'], marker='o', label=str(year))
+    ax.set_xlabel('Month')
+    ax.set_ylabel('Number of Cancellations')
+    ax.set_title('Monthly Cancellations by Year')
+    ax.set_xticks(range(1, 13))
+    ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+    ax.legend(title='Year')
+    save_figure(fig, 'g1_cancellations_by_month')
+
+    # G2: Cancellation rate by charter type
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    cancel_by_type = df.groupby('charter_type').apply(
+        lambda x: (x['Cancelled?'] != 'No').sum() / len(x) * 100
+    ).sort_values(ascending=True)
+    ax.barh(cancel_by_type.index, cancel_by_type.values, color='coral')
+    ax.set_xlabel('Cancellation Rate (%)')
+    ax.set_ylabel('Charter Type')
+    ax.set_title('Cancellation Rate by Charter Type')
+    save_figure(fig, 'g2_cancellation_rate_by_type')
+
+    write("### Cancellation Rate by Charter Type")
+    write()
+    write(cancel_by_type.round(2).to_frame('cancellation_rate_%').to_markdown())
+    write()
+
+    # G3: Lead time of cancelled bookings vs active
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    cancelled_lead = cancelled[cancelled['lead_time_days'] >= 0]['lead_time_days']
+    active_lead = active[active['lead_time_days'] >= 0]['lead_time_days']
+    ax.hist(active_lead, bins=30, alpha=0.5, label=f'Active (n={len(active_lead)})', color='steelblue')
+    ax.hist(cancelled_lead, bins=30, alpha=0.5, label=f'Cancelled (n={len(cancelled_lead)})', color='coral')
+    ax.set_xlabel('Lead Time (Days)')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Lead Time Distribution: Active vs Cancelled')
+    ax.legend()
+    save_figure(fig, 'g3_lead_time_cancelled_vs_active')
+
+    write("**Lead Time Comparison:**")
+    write(f"- Active bookings median lead time: {active_lead.median():.0f} days")
+    write(f"- Cancelled bookings median lead time: {cancelled_lead.median():.0f} days")
+    write()
+
+    # G4: Cancellations by booking channel
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    cancel_by_channel = df.groupby('booking_channel').apply(
+        lambda x: (x['Cancelled?'] != 'No').sum() / len(x) * 100
+    ).sort_values(ascending=True)
+    ax.barh(cancel_by_channel.index, cancel_by_channel.values, color='coral')
+    ax.set_xlabel('Cancellation Rate (%)')
+    ax.set_ylabel('Booking Channel')
+    ax.set_title('Cancellation Rate by Booking Channel')
+    save_figure(fig, 'g4_cancellation_rate_by_channel')
+
+
+# =============================================================================
 # Main
 # =============================================================================
 def main():
@@ -404,12 +493,17 @@ def main():
         lead_time_analysis(df)
         channel_analysis(df)
         correlation_analysis(df)
+        cancellation_analysis(df)
 
         # Summary
         section_header("Summary")
-        write(f"- **Total bookings analyzed:** {len(df)}")
-        write(f"- **Total revenue:** ${df['Total'].sum():,.2f}")
-        write(f"- **Average booking value:** ${df['Total'].mean():,.2f}")
+        df_active = df[df['Cancelled?'] == 'No']
+        df_cancelled = df[df['Cancelled?'] != 'No']
+        write(f"- **Total bookings:** {len(df)}")
+        write(f"- **Active bookings:** {len(df_active)}")
+        write(f"- **Cancelled bookings:** {len(df_cancelled)} ({len(df_cancelled)/len(df)*100:.1f}%)")
+        write(f"- **Total revenue (active):** ${df_active['Total'].sum():,.2f}")
+        write(f"- **Average booking value (active):** ${df_active['Total'].mean():,.2f}")
 
         _report_file = None
 

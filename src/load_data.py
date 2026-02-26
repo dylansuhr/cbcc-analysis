@@ -84,8 +84,8 @@ def load_booking_data(filepath: str | Path = 'data/booking-report-23-24-25.csv')
     pd.DataFrame
         Cleaned booking data with derived features.
     """
-    # Load data, skipping the title row
-    df = pd.read_csv(filepath, skiprows=1)
+    # Load data
+    df = pd.read_csv(filepath)
 
     # Parse currency columns
     currency_cols = [
@@ -106,13 +106,9 @@ def load_booking_data(filepath: str | Path = 'data/booking-report-23-24-25.csv')
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], format='%Y-%m-%d', errors='coerce')
 
-    # Filter out cancelled bookings
-    df = df[df['Cancelled?'] != 'Cancelled'].copy()
-
-    # Filter out test bookings and outliers
+    # Filter out test bookings and aggregate rows only
     df = df[df['Contact'].str.lower() != 'test'].copy()
     df = df[df['# of Pax'] <= 100].copy()  # Remove aggregate rows
-    df = df[df['Total'] > 0].copy()  # Remove zero-revenue bookings
 
     # Derive features
     # Lead time (days between booking and charter)
