@@ -1,4 +1,4 @@
-.PHONY: all clean eda eda2
+.PHONY: all clean eda eda2 explore
 
 DATA = data/booking-report-23-24-25.csv
 OUTPUT_DIR = output/figures
@@ -14,5 +14,8 @@ eda: $(OUTPUT_DIR) $(DATA)
 eda2: $(DATA)
 	python src/eda2.py
 
+explore: $(OUTPUT_DIR) $(DATA)
+	python src/explore.py
+
 clean:
-	rm -rf $(OUTPUT_DIR)/*.png output/eda_report.md
+	rm -rf $(OUTPUT_DIR)/*.png output/eda_report.md output/forecast_report.md

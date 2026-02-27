@@ -1,6 +1,9 @@
-# cbcc-analysis
+Dylan Suhr
 
-Exploratory data analysis of the CBCC dataset.
+# CBCC Analysis
+
+
+Exploratory data analysis of the CBCC (Casco Bay Custom Charters) dataset.
 
 ## Setup
 
